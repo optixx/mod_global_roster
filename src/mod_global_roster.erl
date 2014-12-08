@@ -3,6 +3,7 @@
 -behavior(gen_mod).
 
 -include("ejabberd.hrl").
+
 -export([start/2, stop/1, on_presence_joined/4, on_presence_left/4]).
 
 start(Host, _Opts) ->
@@ -18,15 +19,17 @@ stop(Host) ->
   ok.
   
 on_presence_joined(User, Server, _Resource, _Packet) ->
-  %%?INFO_MSG("mod_global_roster joined user=~s resource=~p", [User,_Resource]),
+  ?INFO_MSG("mod_global_roster joined user=~s resource=~p _Packet=~p", [User,_Resource,_Packet]),
   {ok, Client} = client(Server),
   {ok, Ret} = eredis:q(Client, ["HSET", User,_Resource, "1"]),
+  {ok, Ret} = eredis:q(Client, ["PUBLISH", "slot:online", User]),
   none.
 
 on_presence_left(User, Server, _Resource, _Status) ->
-  %%?INFO_MSG("mod_global_roster left user=~s resource=~p", [User,_Resource]),
+  ?INFO_MSG("mod_global_roster left user=~s resource=~p status=~p", [User,_Resource,_Status]),
   {ok, Client} = client(Server),
   {ok, Ret} = eredis:q(Client, ["HDEL", User,_Resource]),
+  {ok, Ret} = eredis:q(Client, ["PUBLISH", "slot:offline", User]),
   none.
 
 
