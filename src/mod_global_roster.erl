@@ -18,14 +18,14 @@ stop(Host) ->
   
 on_presence_joined(User, Server, _Resource, _Packet) ->
   {ok, Client} = client(Server),
-  {ok, Ret} = eredis:q(Client, ["HSET", User,_Resource, "1"]),
-  {ok, Ret} = eredis:q(Client, ["PUBLISH", "slot:online", User]),
+  eredis:q(Client, ["HSET", User,_Resource, "1"]),
+  eredis:q(Client, ["PUBLISH", "slot:online", User]),
   none.
 
 on_presence_left(User, Server, _Resource, _Status) ->
   {ok, Client} = client(Server),
-  {ok, Ret} = eredis:q(Client, ["HDEL", User,_Resource]),
-  {ok, Ret} = eredis:q(Client, ["PUBLISH", "slot:offline", User]),
+  eredis:q(Client, ["HDEL", User,_Resource]),
+  eredis:q(Client, ["PUBLISH", "slot:offline", User]),
   none.
 
 client(Server) ->
