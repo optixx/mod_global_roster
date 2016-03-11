@@ -31,7 +31,7 @@ on_presence_left(User, Server, _Resource, _Status) ->
 client(Server) ->
   case whereis(eredis_driver) of
     undefined ->
-      case eredis:start_link("redis-master", 6379, 5) of
+      case eredis:start_link("cache-master", 6379, 5) of
         {ok, Client} ->
           register(eredis_driver, Client),
           {ok, Client};
