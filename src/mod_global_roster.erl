@@ -18,14 +18,22 @@ stop(Host) ->
   
 on_presence_joined(User, Server, _Resource, _Packet) ->
   {ok, Client} = client(Server),
-  eredis:q(Client, ["HSET", User,_Resource, "1"]),
-  eredis:q(Client, ["PUBLISH", "slot:online", User]),
+  case string:prefix(_Resource, "userlike-dashboard-") of
+    nomatch ->
+      eredis:q(Client, ["HSET", User, _Resource, "chat"]),
+      eredis:q(Client, ["PUBLISH", "slot:online", User]);
+    _ ->
+      eredis:q(Client, ["HSET", User, _Resource, "dashboard"])
+  end,
   none.
 
 on_presence_left(User, Server, _Resource, _Status) ->
   {ok, Client} = client(Server),
   eredis:q(Client, ["HDEL", User,_Resource]),
-  eredis:q(Client, ["PUBLISH", "slot:offline", User]),
+  case string:prefix(_Resource, "userlike-dashboard-") of
+    nomatch ->
+      eredis:q(Client, ["PUBLISH", "slot:offline", User])
+  end,
   none.
 
 client(Server) ->
