@@ -32,7 +32,9 @@ on_presence_left(User, Server, _Resource, _Status) ->
   eredis:q(Client, ["HDEL", User,_Resource]),
   case string:prefix(_Resource, "userlike-dashboard-") of
     nomatch ->
-      eredis:q(Client, ["PUBLISH", "slot:offline", User])
+      eredis:q(Client, ["PUBLISH", "slot:offline", User]);
+    _ ->
+      ok
   end,
   none.
 
