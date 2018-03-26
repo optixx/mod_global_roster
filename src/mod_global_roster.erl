@@ -30,6 +30,8 @@ reload(Host, NewOpts, _OldOpts) ->
 
 depends(_, _) -> [].
 
+mod_opt_type(hosts) ->
+  fun (L) -> [iolist_to_binary(H) || H <- L] end;
 mod_opt_type(slot_http_username) -> fun iolist_to_binary/1;
 mod_opt_type(slot_http_password) -> fun iolist_to_binary/1;
 mod_opt_type(api_url) -> fun iolist_to_binary/1;
@@ -37,7 +39,7 @@ mod_opt_type(http_timeout) ->
   fun (infinity) -> infinity;
       (I) when is_integer(I), I > 0 -> I
   end;
-mod_opt_type(_) -> [slot_http_username, slot_http_password, api_url, http_timeout].
+mod_opt_type(_) -> [hosts, slot_http_username, slot_http_password, api_url, http_timeout].
 
 
 % gen_server impl
@@ -54,16 +56,10 @@ handle_call(Request, _From, State) ->
   ?ERROR_MSG("Received unexpected call: ~p", [Request]),
   {reply, none, State}.
 
-handle_cast({add, #entry{user = User, status = Status} = Entry}, #state{options = Opts, seen = Seen} = State) ->
-  case Status of
-    online ->
-      case ets:insert_new(Seen, {User}) of
-        true -> send_entry(Entry, Opts);
-        false -> ok
-      end;
-    offline ->
-      ets:delete(Seen, User),
-      send_entry(Entry, Opts)
+handle_cast({add, #entry{server = Server} = Entry}, #state{options = Opts} = State) ->
+  case lists:member(Server, gen_mod:get_opt(hosts, Opts)) of
+    true -> process_add(Entry, State);
+    false -> ok
   end,
   {noreply, State};
 
@@ -110,6 +106,19 @@ on_presence_left(User, Server, Resource, _Status) ->
 
 format_entry(Entry) ->
   {lists:zip(record_info(fields, entry), tl(tuple_to_list(Entry)))}.
+
+process_add(#entry{status = Status, user = User} = Entry, #state{options = Opts, seen = Seen}) ->
+  case Status of
+    online ->
+      case ets:insert_new(Seen, {User}) of
+        true -> send_entry(Entry, Opts);
+        false -> ok
+      end;
+    offline ->
+      ets:delete(Seen, User),
+      send_entry(Entry, Opts)
+  end,
+  ok.
 
 send_entry(Entry, Opts) ->
   Url = gen_mod:get_opt(api_url, Opts),
