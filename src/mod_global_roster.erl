@@ -109,15 +109,15 @@ on_presence_left(User, Server, Resource, _Status) ->
 format_entry(Entry) ->
   {lists:zip(record_info(fields, entry), tl(tuple_to_list(Entry)))}.
 
-process_add(#entry{status = Status, user = User} = Entry, #state{options = Opts, seen = Seen}) ->
+process_add(#entry{status = Status, user = User, resource = Resource} = Entry, #state{options = Opts, seen = Seen}) ->
   case Status of
     online ->
-      case ets:insert_new(Seen, {User}) of
+      case ets:insert_new(Seen, {{User, Resource}}) of
         true -> send_entry(Entry, Opts);
         false -> ok
       end;
     offline ->
-      ets:delete(Seen, User),
+      ets:delete(Seen, {User, Resource}),
       send_entry(Entry, Opts)
   end,
   ok.
