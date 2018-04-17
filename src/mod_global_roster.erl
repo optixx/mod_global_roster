@@ -74,6 +74,8 @@ handle_info({http, ReplyInfo}, State) ->
   case ReplyInfo of
     {_RequestId, {error, Reason}} ->
       ?ERROR_MSG("Failed sending roster HTTP request: ~p", [Reason]);
+    {{_HttpVersion, Code, _HttpReason}, _Headers, Body} when Code > 399 ->
+      ?ERROR_MSG("Got unexpected ~w response: ~p", [Code, Body]);
     _ -> ok
   end,
   {noreply, State};
